@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pymongo
+playwright
+pydantic
+python-dotenv
+sentence-transformers
+numpy
+requests
