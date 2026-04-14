@@ -95,17 +95,22 @@ def _create_mongo_collections() -> dict[str, Any] | None:
     except ImportError:
         return None
 
-    client = MongoClient(
-        MONGO_URI,
-        serverSelectionTimeoutMS=MONGO_SERVER_SELECTION_TIMEOUT_MS,
-    )
-
     try:
-        client.admin.command("ping")
+        temp_client = MongoClient(
+            MONGO_URI,
+            serverSelectionTimeoutMS=MONGO_SERVER_SELECTION_TIMEOUT_MS,
+        )
+        temp_client.admin.command("ping")
     except Exception:
-        client = None
+        # MongoDB not available, close client and return None
+        try:
+            temp_client.close()
+        except Exception:
+            pass
         return None
 
+    # MongoDB is available, set global client
+    client = temp_client
     db = client[DATABASE_NAME]
 
     try:
@@ -149,3 +154,20 @@ def has_resume_bucket() -> bool:
 def reset_in_memory_storage() -> None:
     for collection in _memory_collections.values():
         collection.clear()
+
+
+def close_mongo_client() -> None:
+    """Close the MongoDB client and clean up resources."""
+    global client
+    if client is not None:
+        try:
+            client.close()
+        except Exception:
+            pass
+        finally:
+            client = None
+
+
+# Register cleanup on exit
+import atexit
+atexit.register(close_mongo_client)

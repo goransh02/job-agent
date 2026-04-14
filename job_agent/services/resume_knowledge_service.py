@@ -485,6 +485,9 @@ def search_profile_knowledge(
         return []
 
     for document in documents:
+        # Remove MongoDB's _id field if present
+        document.pop("_id", None)
+        
         embedding = document.get("embedding")
         chunk_text = document.get("chunk_text") or document.get("content")
         if not embedding or not chunk_text:
