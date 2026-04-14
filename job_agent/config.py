@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 try:
     from dotenv import load_dotenv
@@ -40,6 +41,7 @@ def _env_float(name: str, default: float) -> float:
 
 MONGO_URI = os.getenv("JOB_AGENT_MONGO_URI", "mongodb://localhost:27017")
 DATABASE_NAME = os.getenv("JOB_AGENT_DATABASE_NAME", "job_agent")
+DEFAULT_PROFILE_ID = os.getenv("JOB_AGENT_DEFAULT_PROFILE_ID", "default")
 MONGO_SERVER_SELECTION_TIMEOUT_MS = _env_int(
     "JOB_AGENT_MONGO_SERVER_SELECTION_TIMEOUT_MS",
     500,
@@ -69,8 +71,43 @@ OLLAMA_URL = os.getenv(
 OLLAMA_MODEL = os.getenv("JOB_AGENT_OLLAMA_MODEL", "")
 OLLAMA_TIMEOUT_SECONDS = _env_int("JOB_AGENT_OLLAMA_TIMEOUT_SECONDS", 10)
 
-BROWSER_HEADLESS = _env_bool("JOB_AGENT_BROWSER_HEADLESS", True)
+JOB_AGENT_GROQ_BASE_URL = os.getenv(
+    "JOB_AGENT_GROQ_BASE_URL",
+    "https://api.groq.com/openai/v1/chat/completions",
+)
+JOB_AGENT_GROQ_API_KEY = os.getenv("JOB_AGENT_GROQ_API_KEY", "")
+JOB_AGENT_GROQ_CHUNK_MODEL = os.getenv(
+    "JOB_AGENT_GROQ_CHUNK_MODEL",
+    "llama-3.1-8b-instant",
+)
+JOB_AGENT_GROQ_REASONING_MODEL = os.getenv(
+    "JOB_AGENT_GROQ_REASONING_MODEL",
+    "llama-3.3-70b-versatile",
+)
+JOB_AGENT_GROQ_TIMEOUT_SECONDS = _env_int("JOB_AGENT_GROQ_TIMEOUT_SECONDS", 20)
+
+BROWSER_HEADLESS = _env_bool("JOB_AGENT_BROWSER_HEADLESS", False)
 BROWSER_SLOW_MO_MS = _env_int("JOB_AGENT_BROWSER_SLOW_MO_MS", 0)
 BROWSER_TIMEOUT_MS = _env_int("JOB_AGENT_BROWSER_TIMEOUT_MS", 20000)
+BROWSER_USE_PERSISTENT_CONTEXT = _env_bool(
+    "JOB_AGENT_BROWSER_USE_PERSISTENT_CONTEXT",
+    False,
+)
+BROWSER_USER_DATA_DIR = os.getenv(
+    "JOB_AGENT_BROWSER_USER_DATA_DIR",
+    str(Path.home() / ".job_agent_browser_profile"),
+)
+BROWSER_CHANNEL = os.getenv("JOB_AGENT_BROWSER_CHANNEL", "")
+BROWSER_CDP_URL = os.getenv("JOB_AGENT_BROWSER_CDP_URL", "")
+BROWSER_CDP_NEW_WINDOW = _env_bool("JOB_AGENT_BROWSER_CDP_NEW_WINDOW", True)
+BROWSER_FORM_WAIT_TIMEOUT_MS = _env_int(
+    "JOB_AGENT_BROWSER_FORM_WAIT_TIMEOUT_MS",
+    10000,
+)
+BROWSER_STEP_WAIT_TIMEOUT_MS = _env_int(
+    "JOB_AGENT_BROWSER_STEP_WAIT_TIMEOUT_MS",
+    15000,
+)
+MAX_FORM_STEPS = _env_int("JOB_AGENT_MAX_FORM_STEPS", 8)
 
 AUTO_SUBMIT = _env_bool("JOB_AGENT_AUTO_SUBMIT", False)

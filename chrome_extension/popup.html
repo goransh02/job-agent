@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Job Agent</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">Current Tab Agent</p>
+        <h1>Job Agent</h1>
+        <p class="lede">Fill the page you already opened. Pause on blockers, then resume when ready.</p>
+      </header>
+
+      <section class="card stack">
+        <div class="row">
+          <span>Status</span>
+          <span id="statusBadge" class="badge idle">Idle</span>
+        </div>
+        <label class="stack">
+          <span>Backend URL</span>
+          <input id="backendUrl" type="url" placeholder="http://127.0.0.1:8000">
+        </label>
+        <label class="stack">
+          <span>Profile ID</span>
+          <input id="profileId" type="text" value="default" placeholder="default">
+        </label>
+        <div class="actions">
+          <button id="startButton" class="accent">Start</button>
+          <button id="resumeButton">Resume</button>
+          <button id="pauseButton" class="secondary">Pause</button>
+        </div>
+        <div id="pausedReason" class="note">Open a job page, then press Start.</div>
+      </section>
+
+      <section class="card stack">
+        <div class="row">
+          <span>Activity</span>
+          <button id="refreshButton" class="secondary">Refresh</button>
+        </div>
+        <div id="log" class="log"></div>
+      </section>
+    </main>
+
+    <script src="popup.js" defer></script>
+  </body>
+</html>

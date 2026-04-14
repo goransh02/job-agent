@@ -5,6 +5,7 @@ import math
 from job_agent.ai.embeddings import generate_embedding
 from job_agent.config import ENABLE_SEMANTIC_SEARCH, SIMILARITY_THRESHOLD
 from job_agent.database.mongo import answers_collection
+from job_agent.services.profile_service import normalize_profile_id
 
 
 def cosine_similarity(vector_a, vector_b) -> float:
@@ -21,13 +22,14 @@ def cosine_similarity(vector_a, vector_b) -> float:
     return dot_product / (norm_a * norm_b)
 
 
-def search_similar(question: str | None) -> str | None:
+def search_similar(question: str | None, profile_id: str | None = None) -> str | None:
     if not ENABLE_SEMANTIC_SEARCH or not question:
         return None
 
     query_vector = generate_embedding(question)
     best_score = 0.0
     best_answer = None
+    normalized_profile_id = normalize_profile_id(profile_id)
 
     try:
         documents = answers_collection.find()
@@ -35,6 +37,10 @@ def search_similar(question: str | None) -> str | None:
         return None
 
     for document in documents:
+        document_profile_id = normalize_profile_id(document.get("profile_id"))
+        if document_profile_id != normalized_profile_id:
+            continue
+
         embedding = document.get("embedding")
         answer = document.get("answer")
         if not embedding or not answer:

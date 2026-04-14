@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Job Agent Console</title>
+    <link rel="stylesheet" href="/ui/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Local Job Agent</p>
+        <h1>Run applications without Postman</h1>
+        <p class="lede">
+          Upload a resume, connect to the agent, launch a job application, and answer follow-up
+          prompts from one screen.
+        </p>
+      </section>
+
+      <section class="panel grid">
+        <div class="card">
+          <div class="card-header">
+            <h2>Resume</h2>
+            <button id="refreshResumeButton" class="secondary">Refresh</button>
+          </div>
+          <form id="resumeForm" class="stack">
+            <label class="file-drop" for="resumeFile">
+              <input id="resumeFile" name="file" type="file" accept=".pdf,.doc,.docx">
+              <span>Select resume file</span>
+              <small>Stored in MongoDB GridFS</small>
+            </label>
+            <button type="submit">Upload Resume</button>
+          </form>
+          <div id="resumeStatus" class="status-note">No stored resume loaded yet.</div>
+          <dl id="resumeMeta" class="meta-list"></dl>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Connection</h2>
+            <span id="socketState" class="socket-state idle">Disconnected</span>
+          </div>
+          <div class="stack">
+            <div class="card-header compact">
+              <span>Run state</span>
+              <span id="runState" class="socket-state idle">Idle</span>
+            </div>
+            <button id="connectButton">Connect Agent</button>
+            <label class="stack">
+              <span>Profile ID</span>
+              <input
+                id="profileId"
+                type="text"
+                value="default"
+                placeholder="default">
+            </label>
+            <label class="stack">
+              <span>Job URL</span>
+              <input
+                id="jobUrl"
+                type="url"
+                placeholder="https://company.workdayjobs.com/...">
+            </label>
+            <div class="action-row">
+              <button id="startButton" class="accent">Start Application</button>
+              <button id="continueButton" class="secondary">Play / Resume</button>
+            </div>
+            <div class="status-note">
+              When the agent pauses, use Play / Resume after you manually interact with the open browser window,
+              for example to upload a resume, dismiss a blocker, or advance a portal-specific step.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel two-column">
+        <div class="card">
+          <div class="card-header">
+            <h2>Agent Events</h2>
+            <button id="clearLogButton" class="secondary">Clear</button>
+          </div>
+          <div id="eventLog" class="log"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Pending Question</h2>
+            <span id="questionState" class="socket-state idle">None</span>
+          </div>
+          <div id="questionField" class="question-field">No question pending.</div>
+          <form id="answerForm" class="stack">
+            <label class="stack">
+              <span>Your answer</span>
+              <input
+                id="answerInput"
+                type="text"
+                placeholder="Type an answer like LinkedIn"
+                disabled>
+            </label>
+            <button id="sendAnswerButton" type="submit" disabled>Send Answer</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <script src="/ui/app.js" defer></script>
+  </body>
+</html>

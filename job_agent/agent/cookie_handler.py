@@ -1,17 +1,17 @@
-def accept_cookies(page):
+async def accept_cookies(page):
+    buttons = await page.query_selector_all("button")
 
-    buttons = page.query_selector_all("button")
-
-    for b in buttons:
-
-        text = b.inner_text().lower()
+    for button in buttons:
+        try:
+            text = ((await button.inner_text()) or "").lower()
+        except Exception:
+            continue
 
         if "accept" in text or "agree" in text:
-
             try:
-                b.click()
+                await button.click()
                 return True
-            except:
-                pass
+            except Exception:
+                continue
 
     return False

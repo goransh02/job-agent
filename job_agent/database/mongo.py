@@ -57,23 +57,38 @@ class InMemoryCollection:
 
         return SimpleNamespace(matched_count=0, modified_count=0)
 
+    def delete_many(self, criteria: dict[str, Any] | None = None) -> SimpleNamespace:
+        expected = criteria or {}
+        before = len(self._documents)
+        self._documents = [
+            document
+            for document in self._documents
+            if not _matches(document, expected)
+        ]
+        return SimpleNamespace(deleted_count=before - len(self._documents))
+
+    def count_documents(self, criteria: dict[str, Any] | None = None) -> int:
+        return len(self.find(criteria))
+
     def clear(self) -> None:
         self._documents.clear()
 
 
 client = None
 db = None
+resume_bucket = None
 
 _memory_collections = {
     "profile": InMemoryCollection(),
     "answers": InMemoryCollection(),
+    "resume_chunks": InMemoryCollection(),
     "field_mappings": InMemoryCollection(),
     "applications": InMemoryCollection(),
 }
 
 
 def _create_mongo_collections() -> dict[str, Any] | None:
-    global client, db
+    global client, db, resume_bucket
 
     try:
         from pymongo import MongoClient
@@ -92,9 +107,18 @@ def _create_mongo_collections() -> dict[str, Any] | None:
         return None
 
     db = client[DATABASE_NAME]
+
+    try:
+        from gridfs import GridFSBucket
+
+        resume_bucket = GridFSBucket(db, bucket_name="resumes")
+    except Exception:
+        resume_bucket = None
+
     return {
         "profile": db["profile"],
         "answers": db["answers"],
+        "resume_chunks": db["resume_chunks"],
         "field_mappings": db["field_mappings"],
         "applications": db["applications"],
     }
@@ -105,12 +129,21 @@ _collections = _mongo_collections or _memory_collections
 
 profile_collection = _collections["profile"]
 answers_collection = _collections["answers"]
+resume_chunks_collection = _collections["resume_chunks"]
 field_mapping_collection = _collections["field_mappings"]
 applications_collection = _collections["applications"]
 
 
 def using_in_memory_storage() -> bool:
     return _mongo_collections is None
+
+
+def has_mongo_storage() -> bool:
+    return _mongo_collections is not None
+
+
+def has_resume_bucket() -> bool:
+    return resume_bucket is not None
 
 
 def reset_in_memory_storage() -> None:

@@ -2,12 +2,30 @@ from __future__ import annotations
 
 from typing import Any
 
+from job_agent.config import DEFAULT_PROFILE_ID
 from job_agent.database.mongo import profile_collection
 
 
-def get_profile() -> dict[str, Any]:
+def normalize_profile_id(profile_id: str | None = None) -> str:
+    cleaned = str(profile_id or DEFAULT_PROFILE_ID).strip()
+    return cleaned or DEFAULT_PROFILE_ID
+
+
+def _legacy_default_profile() -> dict[str, Any]:
+    profile = profile_collection.find_one() or {}
+    if not isinstance(profile, dict):
+        return {}
+    if profile.get("profile_id"):
+        return {}
+    return profile
+
+
+def get_profile(profile_id: str | None = None) -> dict[str, Any]:
+    normalized_profile_id = normalize_profile_id(profile_id)
     try:
-        profile = profile_collection.find_one() or {}
+        profile = profile_collection.find_one({"profile_id": normalized_profile_id}) or {}
+        if not profile and normalized_profile_id == DEFAULT_PROFILE_ID:
+            profile = _legacy_default_profile()
     except Exception:
         return {}
 
@@ -15,19 +33,42 @@ def get_profile() -> dict[str, Any]:
         return {}
 
     profile.pop("_id", None)
+    profile["profile_id"] = normalized_profile_id
     return profile
 
 
-def save_profile(profile: dict[str, Any]) -> None:
-    existing = profile_collection.find_one()
+def save_profile(profile: dict[str, Any], profile_id: str | None = None) -> None:
+    normalized_profile_id = normalize_profile_id(profile_id or profile.get("profile_id"))
+    existing = get_profile(normalized_profile_id)
     clean_profile = dict(profile)
+    clean_profile["profile_id"] = normalized_profile_id
 
-    if existing and isinstance(existing, dict) and "_id" in existing:
+    existing_document = profile_collection.find_one({"profile_id": normalized_profile_id})
+    if not existing_document and normalized_profile_id == DEFAULT_PROFILE_ID:
+        existing_document = _legacy_default_profile()
+
+    if existing_document and isinstance(existing_document, dict) and "_id" in existing_document:
+        clean_profile["_id"] = existing_document["_id"]
         profile_collection.replace_one(
-            {"_id": existing["_id"]},
+            {"_id": existing_document["_id"]},
             clean_profile,
             upsert=True,
         )
         return
 
-    profile_collection.replace_one({}, clean_profile, upsert=True)
+    if existing and isinstance(existing, dict) and existing.get("profile_id") == normalized_profile_id:
+        profile_collection.replace_one({"profile_id": normalized_profile_id}, clean_profile, upsert=True)
+        return
+
+    profile_collection.replace_one({"profile_id": normalized_profile_id}, clean_profile, upsert=True)
+
+
+def update_profile_fields(
+    fields: dict[str, Any],
+    profile_id: str | None = None,
+) -> dict[str, Any]:
+    normalized_profile_id = normalize_profile_id(profile_id or fields.get("profile_id"))
+    profile = get_profile(normalized_profile_id)
+    profile.update(fields)
+    save_profile(profile, profile_id=normalized_profile_id)
+    return profile
