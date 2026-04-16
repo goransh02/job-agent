@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from job_agent.agent.field_classifier import classify
-from job_agent.agent.value_resolver import resolve
+from job_agent.agent.value_resolver import PROFILE_FIELD_PATHS, resolve
 from job_agent.services.profile_service import get_profile, normalize_profile_id
 
 
@@ -15,6 +15,57 @@ def _normalize_options(field: dict[str, Any]) -> list[str]:
     if not isinstance(options, list):
         return []
     return [str(option).strip() for option in options if str(option).strip()]
+
+
+def normalize_user_values(user_values: dict[str, str]) -> dict[str, Any]:
+    """
+    Convert user-provided field label -> value mapping into profile structure.
+    
+    Example:
+        {"First Name": "John", "Email": "john@example.com"} 
+        -> {"first_name": "John", "email": "john@example.com"}
+    """
+    if not user_values:
+        return {}
+    
+    profile_updates = {}
+    
+    for label, value in user_values.items():
+        if not label or not str(value).strip():
+            continue
+        
+        # Classify the field to determine field type
+        field_type = classify(label)
+        
+        # Look up the profile path for this field type
+        if field_type not in PROFILE_FIELD_PATHS:
+            # For unknown field types, use the field type as a simple key
+            profile_updates[field_type] = str(value).strip()
+            continue
+        
+        # Get the nested path for this field type
+        path = PROFILE_FIELD_PATHS[field_type]
+        
+        if len(path) == 1:
+            # Simple top-level field
+            profile_updates[path[0]] = str(value).strip()
+        else:
+            # Nested field (e.g., address.city)
+            # Create nested structure
+            if path[0] not in profile_updates:
+                profile_updates[path[0]] = {}
+            
+            # Navigate to the parent level
+            current = profile_updates[path[0]]
+            for key in path[1:-1]:
+                if key not in current:
+                    current[key] = {}
+                current = current[key]
+            
+            # Set the final value
+            current[path[-1]] = str(value).strip()
+    
+    return profile_updates
 
 
 def build_extension_fill_plan(

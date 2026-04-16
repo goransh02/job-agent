@@ -22,7 +22,13 @@ except ImportError:
 
 from job_agent.agent.job_agent import JobAgent
 from job_agent.logging_utils import trace
-from job_agent.services.extension_service import build_extension_fill_plan
+from job_agent.services.extension_service import (
+    build_extension_fill_plan,
+    normalize_user_values,
+)
+from job_agent.services.profile_service import (
+    update_profile_fields,
+)
 from job_agent.services.resume_service import (
     ResumeStorageError,
     get_resume_metadata,
@@ -92,6 +98,25 @@ def create_app():
         url = str(payload.get("url") or "").strip()
         profile_id = payload.get("profile_id")
         return build_extension_fill_plan(url, fields, profile_id=profile_id)
+
+    @app.post("/api/extension/update-profile")
+    async def update_extension_profile(payload: dict[str, Any]):
+        profile_id = payload.get("profile_id")
+        updates = payload.get("updates")
+        if not isinstance(updates, dict):
+            raise HTTPException(status_code=400, detail="`updates` must be a dictionary")
+        
+        try:
+            # Normalize user-provided values to match profile structure
+            normalized_updates = normalize_user_values(updates)
+            updated_profile = update_profile_fields(normalized_updates, profile_id=profile_id)
+            return {
+                "message": "Profile updated successfully",
+                "profile_id": updated_profile.get("profile_id"),
+                "updated_fields": list(normalized_updates.keys()),
+            }
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(exc)}") from exc
 
     @app.get("/api/profile/resume/download")
     async def download_resume(profile_id: str | None = None):

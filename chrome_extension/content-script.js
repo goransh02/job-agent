@@ -554,9 +554,30 @@ async function applyFill(plan) {
   const failed = [];
 
   for (const item of plan || []) {
-    const selector = `[${JOB_AGENT_FIELD_ATTR}="${CSS.escape(item.field_id)}"]`;
-    const element = document.querySelector(selector);
+    let element = null;
+    let matchedLabel = null;
+    
+    // First try to find by field_id
+    if (item.field_id) {
+      const selector = `[${JOB_AGENT_FIELD_ATTR}="${CSS.escape(item.field_id)}"]`;
+      element = document.querySelector(selector);
+    }
+    
+    // If not found and we have a label, try to find by scanning fields and matching label
+    if (!element && item.label) {
+      const scannedFields = scanFields();
+      for (const field of scannedFields) {
+        if (normalizedLower(field.label) === normalizedLower(item.label)) {
+          matchedLabel = field.label;
+          const selector = `[${JOB_AGENT_FIELD_ATTR}="${CSS.escape(field.field_id)}"]`;
+          element = document.querySelector(selector);
+          break;
+        }
+      }
+    }
+    
     if (!element) {
+      const identifier = item.field_id || item.label || "unknown";
       failed.push({ field_id: item.field_id, label: item.label, reason: "element_not_found" });
       continue;
     }

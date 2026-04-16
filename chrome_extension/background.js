@@ -104,6 +104,25 @@ async function resolvePlan(backendUrl, payload) {
   return response.json();
 }
 
+async function saveUserValuesToProfile(backendUrl, profileId, userValues) {
+  if (!userValues || Object.keys(userValues).length === 0) {
+    return;
+  }
+
+  const response = await fetch(`${backendUrl.replace(/\/$/, "")}/api/extension/update-profile`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      profile_id: profileId,
+      updates: userValues
+    })
+  });
+
+  if (!response.ok) {
+    console.warn("Failed to save user values to profile:", response.statusText);
+  }
+}
+
 function hasBlockedIssues(plan, fillResult) {
   return (plan.blocked && plan.blocked.length > 0) || (fillResult.failed && fillResult.failed.length > 0);
 }
@@ -129,13 +148,32 @@ function summarizeBlocked(plan, fillResult) {
   return issues;
 }
 
-async function runAgent(tabId, { resumed = false } = {}) {
+async function runAgent(tabId, { resumed = false, userValues = {} } = {}) {
   const { backendUrl, profileId } = await getStoredBackendUrl();
   writeState(tabId, {
     status: "running",
     pausedReason: null
   });
   appendLog(tabId, "info", resumed ? "Resuming form filler" : "Starting form filler", { backendUrl, profileId });
+
+  // If user provided values, save them to profile and fill them in the form
+  if (resumed && Object.keys(userValues).length > 0) {
+    appendLog(tabId, "info", "Saving user-provided values to profile");
+    await saveUserValuesToProfile(backendUrl, profileId, userValues);
+    
+    // Convert user values to fill format and fill them
+    const userFills = Object.entries(userValues)
+      .filter(([_, value]) => value && String(value).trim())
+      .map(([label, value]) => ({
+        label,
+        value: String(value).trim()
+      }));
+    
+    if (userFills.length > 0) {
+      await fillFields(tabId, userFills);
+      appendLog(tabId, "info", `Filled ${userFills.length} user-provided fields`);
+    }
+  }
 
   const scan = await scanPage(tabId);
   writeState(tabId, { lastScan: scan });
@@ -253,7 +291,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         sendResponse({ ok: false, message: "Open a normal job page tab first." });
         return;
       }
-      runAgent(tab.id, { resumed: message.type === "job-agent-extension.resume" })
+      runAgent(tab.id, { 
+        resumed: message.type === "job-agent-extension.resume",
+        userValues: message.userValues || {}
+      })
         .then((state) => sendResponse({ ok: true, state }))
         .catch((error) => {
           appendLog(tab.id, "error", String(error));

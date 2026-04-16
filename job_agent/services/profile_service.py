@@ -11,6 +11,17 @@ def normalize_profile_id(profile_id: str | None = None) -> str:
     return cleaned or DEFAULT_PROFILE_ID
 
 
+def _deep_merge(target: dict[str, Any], source: dict[str, Any]) -> dict[str, Any]:
+    """Deep merge source dict into target dict."""
+    result = dict(target)
+    for key, value in source.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
 def _legacy_default_profile() -> dict[str, Any]:
     profile = profile_collection.find_one() or {}
     if not isinstance(profile, dict):
@@ -69,6 +80,6 @@ def update_profile_fields(
 ) -> dict[str, Any]:
     normalized_profile_id = normalize_profile_id(profile_id or fields.get("profile_id"))
     profile = get_profile(normalized_profile_id)
-    profile.update(fields)
+    profile = _deep_merge(profile, fields)
     save_profile(profile, profile_id=normalized_profile_id)
     return profile
